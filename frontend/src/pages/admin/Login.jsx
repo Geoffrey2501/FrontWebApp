@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminAPI } from '../../api';
 
-export default function Login() {
+// Ajout de la prop onLogin
+export default function Login({ onLogin }) {
     const [credentials, setCredentials] = useState({ username: '', password: '' });
     const navigate = useNavigate();
 
@@ -10,9 +11,12 @@ export default function Login() {
         e.preventDefault();
         try {
             const res = await adminAPI.login(credentials.username, credentials.password);
-            // On stocke le token "fake-jwt-token-for-admin"
             localStorage.setItem('admin_token', res.data.token);
-            navigate('/admin'); // Redirection vers le dashboard
+
+            // On prévient le composant App pour afficher le bouton immédiatement
+            if (onLogin) onLogin();
+
+            navigate('/admin');
         } catch (err) {
             alert("Identifiants incorrects (admin / toyboxing2026)");
         }
