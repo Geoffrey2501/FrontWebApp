@@ -20,7 +20,7 @@ export default function Dashboard() {
                 </div>
                 <div className="card">
                     <h3>Abonnés actifs</h3>
-                    <p style={{ fontSize: '24px' }}>{stats.total_subscribers}</p>
+                    <p style={{ fontSize: '24px' }}>{stats.active_subscribers}</p>
                 </div>
             </div>
             {/* Tu pourras ajouter des graphiques ici plus tard */}
