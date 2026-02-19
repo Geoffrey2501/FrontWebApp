@@ -1,25 +1,39 @@
 import axios from 'axios';
 
-//const API_URL = 'http://127.0.0.1:5000'; // À ajuster selon ton serveur Flask
-const API_URL = '';
+const api = axios.create({ baseURL: '' }); // Utilise le proxy Vite pour éviter les erreurs CORS
 
-// Enums du sujet
+// INTERCEPTEUR : Ajoute automatiquement le token s'il existe dans le localStorage
+api.interceptors.request.use(config => {
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// --- ENUMS (Indispensables pour l'affichage) ---
 export const CATEGORIES = {
     SOC: 'Jeux de société', FIG: 'Figurines', CON: 'Construction',
     EXT: 'Extérieur', EVL: 'Éveil', LIV: 'Livres'
 };
-export const AGE_RANGES = { BB: '0-3 ans', PE: '3-6 ans', EN: '6-10 ans', AD: '10+ ans' };
-export const CONDITIONS = { N: 'Neuf', TB: 'Très bon état', B: 'Bon état' };
 
-const api = axios.create({ baseURL: API_URL });
+export const AGE_RANGES = {
+    BB: '0-3 ans', PE: '3-6 ans', EN: '6-10 ans', AD: '10+ ans'
+};
+
+export const CONDITIONS = {
+    N: 'Neuf', TB: 'Très bon état', B: 'Bon état'
+};
+
+// --- ROUTES API ---
 
 export const subscriberAPI = {
     register: (data) => api.post('/subscriber/register', data),
     getBox: (email) => api.get(`/subscriber/box?email=${email}`),
-    getHistory: (email) => api.get(`/subscriber/history?email=${email}`),
 };
 
 export const adminAPI = {
+    login: (username, password) => api.post('/admin/login', { username, password }),
     getArticles: (page = 1) => api.get(`/admin/articles?page=${page}`),
     addArticle: (data) => api.post('/admin/articles', data),
     createCampaign: (maxWeight) => api.post('/admin/campaigns', { max_weight_per_box: maxWeight }),
