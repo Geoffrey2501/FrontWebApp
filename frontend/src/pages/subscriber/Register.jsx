@@ -150,9 +150,30 @@ export default function Register() {
                 }
                 
                 input, select {
-                    padding: 12px; border-radius: 8px; color: var(--text-white);
-                    border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3);
-                    width: 100%; box-sizing: border-box; font-size: 16px; /* Évite le zoom auto sur iOS */
+                    padding: 12px; border-radius: 8px; 
+                    color: #000000; /* Texte noir sur fond clair */
+                    border: 1px solid rgba(0,0,0,0.1); 
+                    background: var(--glass); /* Couleur glass permanente */
+                    width: 100%; box-sizing: border-box; font-size: 16px;
+                    transition: none; /* Supprime les effets de transition qui pourraient assombrir */
+                }
+
+                input::placeholder {
+                    color: rgba(0,0,0,0.5);
+                }
+
+                input:focus, select:focus {
+                    outline: 2px solid var(--primary);
+                    background: var(--glass); /* Garde la couleur glass même au focus */
+                }
+
+                /* Empêche l'assombrissement par le navigateur (autofill) */
+                input:-webkit-autofill,
+                input:-webkit-autofill:hover, 
+                input:-webkit-autofill:focus {
+                    -webkit-text-fill-color: #000000;
+                    -webkit-box-shadow: 0 0 0px 1000px rgba(240, 240, 240, 0.9) inset;
+                    transition: background-color 5000s ease-in-out 0s;
                 }
 
                 /* Liste de catégories et Drag-Handle */
