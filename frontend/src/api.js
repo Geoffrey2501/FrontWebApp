@@ -33,6 +33,7 @@ export const subscriberAPI = {
 };
 
 export const adminAPI = {
+    getCampaigns: () => api.get('/admin/campaigns'),
     login: (username, password) => api.post('/admin/login', { username, password }),
     getArticles: (page = 1) => api.get(`/admin/articles?page=${page}`),
     addArticle: (data) => api.post('/admin/articles', data),

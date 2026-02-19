@@ -1,58 +1,111 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { adminAPI } from '../../api';
 
-export default function Campaigns() {
-    const [weight, setWeight] = useState(1200);
-    const [currentCampaignId, setCurrentCampaignId] = useState(null);
+export default function AdminCampaigns() {
+    const [campaigns, setCampaigns] = useState([]);
+    const [selectedId, setSelectedId] = useState(null);
     const [boxes, setBoxes] = useState([]);
+    const [weight, setWeight] = useState(1200);
 
-    // 1. Créer la campagne
+    // Charge la liste au démarrage
+    const loadCampaigns = async () => {
+        try {
+            const res = await adminAPI.getCampaigns();
+            setCampaigns(res.data || []);
+        } catch (e) { console.error("Erreur chargement campagnes", e); }
+    };
+
+    useEffect(() => { loadCampaigns(); }, []);
+
+    // 1. Créer (Toujours autorisé)
     const handleCreate = async () => {
-        const res = await adminAPI.createCampaign(weight);
-        setCurrentCampaignId(res.data.id);
-        alert("Campagne créée ! ID: " + res.data.id);
+        try {
+            await adminAPI.createCampaign(weight);
+            await loadCampaigns();
+            alert("Nouvelle campagne créée !");
+        } catch (e) { alert("Erreur création."); }
     };
 
-    // 2. Optimiser
-    const handleOptimize = async () => {
-        await adminAPI.optimizeCampaign(currentCampaignId);
-        const res = await adminAPI.getBoxes(currentCampaignId);
-        setBoxes(res.data);
+    // 2. Optimiser une campagne spécifique
+    const handleOptimize = async (id) => {
+        try {
+            await adminAPI.optimizeCampaign(id);
+            alert("Optimisation terminée.");
+            handleView(id); // Affiche les box après l'optimisation
+        } catch (e) { alert("Erreur optimisation."); }
     };
 
-    // 3. Valider une box
+    // 3. Voir les box d'une campagne
+    const handleView = async (id) => {
+        setSelectedId(id);
+        try {
+            const res = await adminAPI.getBoxes(id);
+            setBoxes(res.data || []);
+        } catch (e) { setBoxes([]); }
+    };
+
+    // 4. Valider l'envoi
     const handleValidate = async (subId) => {
-        await adminAPI.validateBox(currentCampaignId, subId);
-        setBoxes(boxes.filter(b => b.subscriber_id !== subId)); // On l'enlève de la liste visuelle
-        alert("Box validée et stock mis à jour !");
+        try {
+            await adminAPI.validateBox(selectedId, subId);
+            handleView(selectedId); // Refresh la liste
+        } catch (e) { alert("Erreur validation."); }
     };
 
     return (
-        <div>
-            <h1>Gestion des Campagnes (Box)</h1>
+        <div style={{ padding: '20px' }}>
+            <h1>Gestion des Campagnes</h1>
 
-            <section>
-                <input type="number" value={weight} onChange={e => setWeight(e.target.value)} />
-                <button onClick={handleCreate}>1. Lancer la campagne</button>
-                {currentCampaignId && <button onClick={handleOptimize}>2. Optimiser les box</button>}
+            {/* Création : AUCUNE LOGIQUE DE BLOCAGE */}
+            <section style={{ marginBottom: '30px', padding: '15px', background: '#f0f0f0', borderRadius: '8px' }}>
+                <label>Poids max par box (g) : </label>
+                <input type="number" value={weight} onChange={e => setWeight(e.target.value)} style={{ width: '80px', marginRight: '10px' }} />
+                <button onClick={handleCreate} style={{ padding: '8px 15px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                    Lancer une nouvelle campagne
+                </button>
             </section>
 
-            <hr />
-
-            <section>
-                <h2>Box générées</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    {boxes.map(box => (
-                        <div key={box.subscriber_id} className="box-card" style={{ border: '1px solid #ccc', padding: '10px' }}>
-                            <h4>Abonné: {box.subscriber_name}</h4>
-                            <ul>
-                                {box.articles.map(art => <li key={art.id}>{art.designation}</li>)}
-                            </ul>
-                            <button onClick={() => handleValidate(box.subscriber_id)}>Valider l'envoi</button>
+            <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
+                {/* Liste de gauche (Historique) */}
+                <aside>
+                    <h3>Historique</h3>
+                    {[...campaigns].reverse().map(c => (
+                        <div key={c.id} style={{
+                            padding: '10px', border: '1px solid #ccc', marginBottom: '10px', borderRadius: '5px',
+                            background: selectedId === c.id ? '#e7f3ff' : 'white'
+                        }}>
+                            <strong>Campagne #{c.id}</strong><br/>
+                            <div style={{ marginTop: '5px' }}>
+                                <button onClick={() => handleOptimize(c.id)} style={{ fontSize: '0.8em' }}>Optimiser</button>
+                                <button onClick={() => handleView(c.id)} style={{ fontSize: '0.8em', marginLeft: '5px' }}>Détails</button>
+                            </div>
                         </div>
                     ))}
-                </div>
-            </section>
+                </aside>
+
+                {/* Détails de droite */}
+                <main>
+                    <h3>Box de la campagne {selectedId || '---'}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        {boxes.map(box => (
+                            <div key={box.subscriber_id} style={{
+                                border: '1px solid #ddd', padding: '15px', borderRadius: '8px',
+                                background: box.validated ? '#f0fff4' : 'white'
+                            }}>
+                                <strong>{box.subscriber_name}</strong> {box.validated && '✅'}
+                                <ul style={{ fontSize: '0.85em' }}>
+                                    {box.articles.map(a => <li key={a.id}>{a.designation}</li>)}
+                                </ul>
+                                {!box.validated && (
+                                    <button onClick={() => handleValidate(box.subscriber_id)} style={{ cursor: 'pointer' }}>
+                                        Valider l'envoi
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </main>
+            </div>
         </div>
     );
 }
